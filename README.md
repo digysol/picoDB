@@ -1,4 +1,3 @@
-
 picoDB - a brief tutorial and guide
 ===================================
 
@@ -31,9 +30,10 @@ in the eLua site.
 picoDB can be used with any eLua module by adding picoDB.lua to the ROM file system sub-directory
 (romfs) along with the application source, when building a ROMable eLua application package.
 
-4. Under what open source license is picoDB distributed ?
+4. What is the minimum hardware for running an application with picoDB ?
 
-picoDB is distributed via the Apache license (version 2.0)
+picoDB, along with eLua and any application code, must run, at a minimum, on an ARM Cortex M3 MCU with
+512 KB of flash and 64 KB of RAM, or equivalent.
 
 5. What is included in the picoDB package ?
 
