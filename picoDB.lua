@@ -747,24 +747,18 @@ end
 			Protocol ID		string		identifier of the protocol,
 			Message ID		string		identifier for a message under this protocol,
 			Parameter ID		string		name of the parameter in this record,
-			Parameter processing	table		a table containing a list of operations on a 
-								parameter combined with Resources and
-								resulting a change of value for a Resource
+			Parameter processing	string		a string containing a series of mathematical 									operations in a stack machine structure using 									Resources and resulting a change of value for 									a Resource
 
 			ASSUMPTION - The parameter processing attribute is a mathematical formula
 				     that results in a numerical value.
 
 			NOTE - 	The contents of the Parameter processing attribute uses a stack machine
 				structure. That is, one or more operands followed by an operator. The operator
-				is a standard arithmetic operator (+,-,*,/,%,^). The operands can be a numerical
-				value or a Resource ID whose value value can be retrieved from the Resource database.
-				Once an operator is reached, that operation is performed on all prior operands.
-				The result is then pushed onto the stack represented through the attribute's table.
-				When all operations are completed, there is only one item in the stack: the final result.
+				is a standard arithmetic operator (+,-,*,/,%,^). The operands can be a 					numerical value or a Resource ID whose value value can be retrieved from the 					Resource database. Once an operator is reached, that operation is performed 					on all prior operands. The result is then pushed onto the stack represented 					through the attribute's table. When all operations are completed, there is 					only one item in the stack: the final result.
 
 				An operand identifies itself as a resource by starting with 'R_'. An operand
 				identifies itself as the parameter value associated with this process as 'P_'.
-				The last item in the stack is a resource assignment operator which is in the format:
+				The last item in the stack is a resource assignment operator which is in the 					format:
 	
 						=R_<resource_name>
 	return value:
@@ -776,14 +770,15 @@ end
 		-5 = message content is not the correct size 
 		-6 = Verifier database cannot be located
 		-7 = The protocol ID or message ID records are not in the Verifier database
-		-8 = mismatch between parameter values in the message and parameter processes in the Verifier database
+		-8 = mismatch between parameter values in the message and parameter processes 
+		     in the Verifier database
 		-9 = parameter value out of protocol range
 --]]
 
 dbVERIFY = function (xproto, xmsg, xcontent)
 	local stat, hexref, i, j, k, lstin, parmref, nxt, idx
 	local parmtype, parmsz, parmname, parmrng, ttl, parmval, parmproc, parmstack, opernds, parmv
-	local parmmax, parmmin, xval
+	local parmmax, parmmin, xval, tkn, rslt, nxt, elemstack
 	hexref = {"0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f"}
 	-- verify that the contents is a hex string
 	if type(xcontent) ~= "string" then return -3 end
@@ -848,13 +843,13 @@ dbVERIFY = function (xproto, xmsg, xcontent)
 			-- adjust search index
 			i = i + stat
 		else
-			-- adjust the parameter location to conform to the actual start locatiion
+			-- adjust the parameter location to conform to the actual start location
 			-- in the message content string
 			parmloc[i] = 2*parmloc[i]-1
 			i = i+1
 		end
 	end
-	-- extract the values associated with each parameter and verify their values against the parameter range
+	-- extract the values associated with each parameter and verify their values against the parameter 		-- range
 	parmval = {}; nxt = 1;
 	for i=1,#parmsz,1 do
 		if parmtype[i] == "short" or
@@ -878,49 +873,71 @@ dbVERIFY = function (xproto, xmsg, xcontent)
 		nxt = nxt + parmsz[i]  
 	end
 	-- carry out the parameter processes with the available parameter values
-	for i, nxt in pairs(parmval) do
+	for i, parmv in pairs(parmval) do
 		parmstack = parmproc[i];
-		j = 1; opernds = {}; lstin = 1;
-		while j <= #parmstack do
-			if string.match(parmstack[j],"[=%*%+%-/%%%^]") == nil then
-				if parmstack[j] == "P_" then
-					opernds[lstin] = parmval[i]
-				elseif string.sub(parmstack[j],1,2) == "R_" then
-					ttl = dbLOCATE("Resource",{"name","=",string.sub(parmstack[j],3)})
+		elemstack={}; tkn = ""; rslt = "";
+		for j=1,string.len(parmstack) do
+			nxt = string.sub(parmstack,j,j)
+			if nxt == "{" then
+				rslt=""; tkn="";
+			elseif nxt == "}" then
+				if rslt ~= "" then 
+					table.insert(elemstack, rslt)
+					rslt = ""
+				end
+			elseif nxt == "," then
+				if rslt ~= "" then 
+					table.insert(elemstack, rslt)
+					rslt = ""
+				elseif tkn ~= "" then 
+					table.insert(elemstack, tkn)
+					tkn = ""
+				end
+			elseif string.match(nxt,"[=%*%+%-/%%%^]") ~= nil then
+				op2 = elemstack[#elemstack]
+				table.remove(elemstack)
+				op1 = elemstack[#elemstack]
+				table.remove(elemstack)
+				if nxt ~= "=" then
+					if op2 == "P_" then
+						op2 = parmval[i]
+					elseif string.sub(op2,1,2) == "R_" then
+						ttl = dbLOCATE("Resource",{"name","=",string.sub(op2,3)})
+						if type(ttl) == "number" then return -5 end
+						xval = ttl["current_value"]
+						op2 = xval[1]
+					end
+				end
+				if op1 == "P_" then
+					op1 = parmval[i]
+				elseif string.sub(op1,1,2) == "R_" then
+					ttl = dbLOCATE("Resource",{"name","=",string.sub(op1,3)})
 					if type(ttl) == "number" then return -5 end
 					xval = ttl["current_value"]
-					opernds[lstin] = xval[1]
-				else
-					opernds[lstin] = parmstack[j]
+					op1 = xval[1]
 				end
-				lstin = lstin + 1;
-			else
-				ttl = 0
-				if parmstack[j] == "+" then
-					ttl = 0
-					for k =1,#opernds,1 do ttl = ttl + opernds[k] end
-				elseif parmstack[j] == "-" then
-					ttl = opernds[1]
-					for k =1,#opernds,1 do ttl = ttl - opernds[k] end
-				elseif parmstack[j] == "*" then
-					ttl = 1
-					for k =1,#opernds,1 do ttl = ttl * opernds[k] end
-				elseif parmstack[j] == "/" and  opernds[2] ~= 0 then
-					ttl = opernds[1] / opernds[2]
-				elseif parmstack[j] == "^" then
-					ttl = opernds[1] ^ opernds[2]
-				elseif parmstack[j] == "%" then
-					ttl = opernds[1] % opernds[2]
-				elseif string.sub(parmstack[j],1,3) == "=R_" then
+				if nxt == "+" then
+					rslt = op1+op2
+				elseif nxt == "-" then
+					rslt = op1-op2
+				elseif nxt == "*" then
+					rslt = op1*op2
+				elseif nxt == "/" then
+					rslt = op1/op2
+				elseif nxt == "%" then
+					rslt = op1%op2
+				elseif nxt == "^" then
+					rslt = op1^op2
+				elseif nxt == "=" then
 					ttl = dbBUILD("Resource",
-							{"name","=",string.sub(parmstack[j],4)},
-							{"current_value",{opernds[1]}})
+							{"name","=",string.sub(op2,3)},
+							{"current_value",{op1}})
 					if type(ttl) == "number" and ttl < 0 then return -5 end
-					break 
 				end
-				opernds = {}; opernds[1] = ttl; lstin = 2;
+			else
+				tkn = tkn..nxt
 			end
-			j = j+1
+
 		end
 	end
 	return 0
