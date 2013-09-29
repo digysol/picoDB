@@ -40,7 +40,11 @@ picoDB, along with eLua and any application code, must run, at a minimum, on an 
 Two files: 
 
 picoDB.lua - the API and plenty of comments
+
 SeeTables.lua - a useful debugging tool for displaying the content Lua tables
+
+pE_TMP102_sim - a sample application using picoDB with plenty of comments
+
 _____________________________________________________________________________________________
 
 Sample eLua toolchain installation for ARM processors (Ubuntu Linux) 
