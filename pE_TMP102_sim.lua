@@ -126,7 +126,7 @@ if stat >= 0 then
 			-- stop 'watch' for one loop
 			lst = tmr.read(0)
 			-- get total time elapsed and display it
-			ttl = tmr.gettimediff(0,str,lst)
+			ttl = tmr.gettimediff(0,str,lst)/1000000
 			print("Total time .. "..ttl)	 
 		end
 		collectgarbage("collect")
