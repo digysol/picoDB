@@ -108,7 +108,7 @@ if stat >= 0 then
 		-- mark 'watch' for one loop
 		str = tmr.start(0)
 		-- formulate temperature reading request
-		msg = picoDB.dbMESSAGE("Temp","RQTemp",{1,0x92})
+		msg = picoDB.dbMESSAGE("Temp","RQTemp",{})
 		if type(msg) ~= "string" then 
 			print("ERROR ("..msg..") - fault formulating request")
 		else
