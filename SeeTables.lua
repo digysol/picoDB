@@ -37,8 +37,41 @@ module(...,package.seeall)
 
 --]]
 
-SeeTables = function(tbl, lvl)
+ResetGather = function()
+	GatherMsg = ""
+end
+
+DoGather = function(tbl, lvl)
 		local i, s, shft
+		shft = ""
+		for i=1,lvl,1 do shft = shft.."..." end
+		if type(tbl) == "table" then
+			for i, s in pairs(tbl) do
+				if type(s) == "table" then
+					GatherMsg = GatherMsg..shft.." "..i.." > ** table **\n"
+					DoGather(s, lvl+1)
+				else
+					if type(s) == "function" then
+						GatherMsg = GatherMsg..shft.." "..i.." > ** function **\n"
+					elseif type(s) == "userdata" then
+						GatherMsg = GatherMsg..shft.." "..i.." > 0x"..string.format("%x\n",s)
+					elseif type(s) == "boolean" then
+						x = "true"
+						if not x then x = "false" end
+						GatherMsg = GatherMsg..shft.." "..i.." > "..x.."\n"
+					else				
+						GatherMsg = GatherMsg..shft.." "..i.." > "..s.."\n"
+					end
+				end
+			end
+		else
+		GatherMsg = GatherMsg..shft.." ".."This is not a table\n"
+		end
+		if lvl == 0 then return GatherMsg end
+end
+
+SeeTables = function(tbl, lvl)
+		local i, s, shft, x
 		shft = ""
 		for i=1,lvl,1 do shft = shft.."..." end
 		if type(tbl) == "table" then
@@ -47,11 +80,15 @@ SeeTables = function(tbl, lvl)
 					print(shft.." "..i.." > ** table **");
 					SeeTables(s, lvl+1)
 				else
-					if type == "function" then
+					if type(s) == "function" then
 						print(shft.." "..i.." > ** function **")
-					elseif type == "userdata" then
-						print(shft.." "..i.." > 0x"..string.format("%x",s)) 						else				
-						print(shft.." "..i.." > "..s);
+					elseif type(s) == "userdata" then
+						print(shft.." "..i.." > 0x"..string.format("%x",s)) 						elseif type(s) == "boolean" then
+						x = "true"
+						if not x then x = "false" end
+						print(shft.." "..i.." > "..x)
+					else				
+						print(shft.." "..i.." > "..s)
 					end
 				end
 			end
