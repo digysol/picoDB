@@ -893,7 +893,7 @@ dbVERIFY = function (xproto, xmsg, xcontent)
 					table.insert(elemstack, tkn)
 					tkn = ""
 				end
-			elseif string.match(nxt,"[=%*%+%-/%%%^]") ~= nil then
+			elseif type(string.match(nxt,"[=%*%+%-/%%%^]")) == "number" then
 				op2 = elemstack[#elemstack]
 				table.remove(elemstack)
 				op1 = elemstack[#elemstack]
